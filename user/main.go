@@ -9,7 +9,6 @@ import (
 	"user/repository"
 	"user/routes"
 	"user/services"
-
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
