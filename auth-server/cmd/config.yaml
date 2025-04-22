@@ -1,0 +1,19 @@
+db:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: 123456
+  name: user-api
+  sslmode: disable
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+
+jwt:
+  secret: "your_jwt_secret_key"
+  expiration: 60
+
+server:
+  port: ":8080"
