@@ -30,11 +30,14 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	for _, user := range users {
 		resp = append(resp, dto.UserResponse{
 			ID:       user.ID,
-			Username: user.UserName,
+			UserName: user.UserName,
 			Role:     string(user.Role),
 		})
 	}
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Get users successfully",
+		"data":    resp,
+	})
 }
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
@@ -44,9 +47,9 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	hashed, _ := services.HashPassword(req.Password)
+	hashed, _ := services.HashPassword(req.HashedPassword)
 	user := models.Users{
-		UserName:       req.Username,
+		UserName:       req.UserName,
 		HashedPassword: hashed,
 		Role:           req.Role,
 	}
@@ -54,7 +57,14 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "create user failed"})
 		return
 	}
-	c.Status(http.StatusCreated)
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "User created successfully",
+		"data": dto.UserResponse{
+			ID:       user.ID,
+			UserName: user.UserName,
+			Role:     user.Role,
+		},
+	})
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
@@ -65,8 +75,8 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 	updates := map[string]interface{}{}
-	if req.Password != "" {
-		hash, err := services.HashPassword(req.Password)
+	if req.HashedPassword != "" {
+		hash, err := services.HashPassword(req.HashedPassword)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
 			return
@@ -80,7 +90,9 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "update user failed"})
 		return
 	}
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User updated successfully",
+	})
 }
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
@@ -89,5 +101,20 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "delete user failed"})
 		return
 	}
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User deleted successfully",
+	})
+}
+
+func (h *UserHandler) GetUserByID(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	user, err := h.Service.GetUserByID(c.Request.Context(), uint(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Get user successfully",
+		"data":    user,
+	})
 }
