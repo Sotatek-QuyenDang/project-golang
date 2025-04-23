@@ -25,10 +25,10 @@ func NewAuthService(db *gorm.DB, Redis *redis.Client) *AuthService {
 
 func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (dto.LoginResponse, error) {
 	var user models.Users
-	if err := s.DB.Where("username = ?", req.Username).First(&user).Error; err != nil {
+	if err := s.DB.Where("user_name = ?", req.UserName).First(&user).Error; err != nil {
 		return dto.LoginResponse{}, errors.New("invalid username or password")
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(req.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(req.HashedPassword)); err != nil {
 		return dto.LoginResponse{}, errors.New("invalid username or password")
 	}
 	exp := time.Minute * time.Duration(config.AppConfig.JWT.Expiration)

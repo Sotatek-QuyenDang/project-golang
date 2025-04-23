@@ -8,6 +8,7 @@ import (
 	"auth-server/internal/handlers"
 	"auth-server/internal/middleware"
 	"auth-server/internal/routes"
+	"auth-server/internal/seed"
 	"auth-server/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -20,14 +21,16 @@ func main() {
 	}
 
 	if err := config.ConnectDatabase(); err != nil {
-		log.Fatalf("failed to init db: %v", err)
+		log.Fatalf("failed to connect database: %v", err)
 	}
+	seed.SeedUsers(config.Database)
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     config.AppConfig.Redis.Addr,
 		Password: config.AppConfig.Redis.Password,
 		DB:       config.AppConfig.Redis.DB,
 	})
+
 	if err := rdb.Ping(context.Background()).Err(); err != nil {
 		log.Fatalf("failed to connect redis: %v", err)
 	}
@@ -43,6 +46,7 @@ func main() {
 	r := gin.Default()
 	routes.SetupRoutes(r, authHandler, userHandler)
 
+	log.Printf("Server starting on localhost:8080")
 	if err := r.Run("localhost:8080"); err != nil {
 		log.Fatalf("failed to run server: %v", err)
 	}

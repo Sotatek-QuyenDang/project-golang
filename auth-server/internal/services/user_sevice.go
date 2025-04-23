@@ -30,6 +30,13 @@ func (s *UserService) UpdateUserByID(ctx context.Context, id uint, updates map[s
 func (s *UserService) DeleteUserByID(ctx context.Context, id uint) error {
 	return s.DB.Delete(&models.Users{}, id).Error
 }
+func (s *UserService) GetUserByID(ctx context.Context, id uint) (*models.Users, error) {
+	var user models.Users
+	if err := s.DB.Where("id = ?", id).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
 
 // CheckRole verifies the user's role
 func (s *UserService) CheckRole(ctx context.Context, id uint, required models.Role) (bool, error) {
