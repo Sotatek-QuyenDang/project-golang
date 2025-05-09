@@ -76,6 +76,12 @@
       color: #7f8c8d;
       font-style: italic;
     }
+    .duplicate-warning {
+      color: #e74c3c;
+      font-size: 12px;
+      margin-top: 5px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -93,10 +99,14 @@
       <input id="message" placeholder="Type your message..." onkeypress="if(event.key === 'Enter') sendMessage()" />
       <button onclick="sendMessage()">Send</button>
     </div>
+    <div id="duplicate-warning" class="duplicate-warning">Duplicate message prevented</div>
   </div>
 
   <script>
     let socket;
+    let lastMessageSent = '';
+    let sentMessages = new Set(); // Track all sent messages
+    let messageTimeout;
 
     function join() {
       const nickname = document.getElementById("nickname").value;
@@ -107,7 +117,7 @@
         return;
       }
 
-      socket = io("http://localhost:8080");
+      socket = io("http://localhost:3000");
 
       socket.on("connect", () => {
         console.log("Connected to server");
@@ -135,15 +145,49 @@
         alert("Disconnected from server");
         document.getElementById("chat").style.display = "none";
         document.querySelector(".login-container").style.display = "block";
+        // Clear message history when disconnected
+        sentMessages.clear();
       });
     }
 
     function sendMessage() {
       const messageInput = document.getElementById("message");
+      const warningElement = document.getElementById("duplicate-warning");
       const msg = messageInput.value.trim();
+      
+      // Clear any existing timeout for the warning message
+      if (messageTimeout) {
+        clearTimeout(messageTimeout);
+      }
+      
+      // Only send if message is not empty and socket exists
       if (msg && socket) {
+        // Check if this message has been sent before
+        if (sentMessages.has(msg)) {
+          // Show duplicate warning
+          warningElement.style.display = "block";
+          warningElement.textContent = "Duplicate message prevented";
+          messageInput.value = "";
+          
+          // Hide the warning after 3 seconds
+          messageTimeout = setTimeout(() => {
+            warningElement.style.display = "none";
+          }, 3000);
+          
+          return;
+        }
+        
+        // Add to sent messages set and send
+        sentMessages.add(msg);
         socket.emit("chat", msg);
+        lastMessageSent = msg;
         messageInput.value = "";
+        
+        // Limit the size of sentMessages to prevent memory issues
+        if (sentMessages.size > 100) {
+          // Remove the oldest message (first item in the set)
+          sentMessages.delete(sentMessages.values().next().value);
+        }
       }
     }
   </script>

@@ -27,7 +27,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request: %v", err)})
 		return
 	}
-	if req.UserName == "" || req.HashedPassword == "" {
+	if req.UserName == "" || req.Password == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "UserName and HashedPassword are required"})
 		return
 	}
