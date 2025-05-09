@@ -27,12 +27,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request: %v", err)})
 		return
 	}
-
-	if req.Username == "" || req.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password are required"})
+	if req.UserName == "" || req.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "UserName and HashedPassword are required"})
 		return
 	}
-
+	fmt.Printf("Dữ liệu nhận được: %+v\n", req)
 	resp, err := h.Service.Login(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("login failed: %v", err)})

@@ -47,7 +47,8 @@ func LoadConfig() error {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("./internal/config")
+	viper.AddConfigPath("./cmd")
+	viper.SetConfigFile("/app/cmd/config.yaml")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)

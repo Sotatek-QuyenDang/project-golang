@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"log"
 	"user/config"
 	"user/db"
@@ -9,8 +11,6 @@ import (
 	"user/repository"
 	"user/routes"
 	"user/services"
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -32,5 +32,5 @@ func main() {
 	r := gin.Default()
 	routes.SetupRoutes(r, userHandler)
 
-	r.Run("localhost:3306")
+	r.Run(":8080")
 }

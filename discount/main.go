@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // Mã giảm giá mẫu
@@ -108,10 +109,12 @@ func applyDiscount(c *gin.Context) {
 
 func main() {
 	r := gin.Default()
+	v1 := r.Group("/api")
+	{
+		v1.POST("/discounts", createDiscount)
+		v1.GET("/discounts", listDiscounts)
+		v1.POST("/apply-discount", applyDiscount)
+	}
 
-	r.POST("/discounts", createDiscount)
-	r.GET("/discounts", listDiscounts)
-	r.POST("/apply-discount", applyDiscount)
-
-	r.Run("localhost:8080")
+	r.Run(":8080")
 }
