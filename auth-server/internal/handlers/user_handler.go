@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -16,13 +17,16 @@ type UserHandler struct {
 }
 
 func NewUserHandler(service *services.UserService) *UserHandler {
+	if service == nil {
+		panic("user service cannot be nil")
+	}
 	return &UserHandler{Service: service}
 }
 
-func (h *UserHandler) GetUsers(c *gin.Context) {
-	users, err := h.Service.GetUsersList(c.Request.Context())
+func (h *UserHandler) GetAllUsers(c *gin.Context) {
+	users, err := h.Service.GetAllUsers(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get users"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get users: %v", err)})
 		return
 	}
 
@@ -43,18 +47,28 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req dto.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request: %v", err)})
 		return
 	}
 
-	hashed, _ := services.HashPassword(req.HashedPassword)
+	if req.UserName == "" || req.HashedPassword == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password are required"})
+		return
+	}
+
+	hashed, err := services.HashPassword(req.HashedPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to hash password: %v", err)})
+		return
+	}
+
 	user := models.Users{
 		UserName:       req.UserName,
 		HashedPassword: hashed,
 		Role:           req.Role,
 	}
-	if err := h.Service.CreateUserRequest(c.Request.Context(), &user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "create user failed"})
+	if err := h.Service.CreateUser(c.Request.Context(), &user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("create user failed: %v", err)})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{
@@ -68,17 +82,29 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	var req dto.UpdateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing user ID"})
 		return
 	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid ID format: %v", err)})
+		return
+	}
+
+	var req dto.UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request: %v", err)})
+		return
+	}
+
 	updates := map[string]interface{}{}
 	if req.HashedPassword != "" {
 		hash, err := services.HashPassword(req.HashedPassword)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to hash password: %v", err)})
 			return
 		}
 		updates["hashed_password"] = hash
@@ -86,8 +112,14 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if req.Role != "" {
 		updates["role"] = req.Role
 	}
-	if err := h.Service.UpdateUserByID(c.Request.Context(), uint(id), updates); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "update user failed"})
+
+	if len(updates) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no fields to update"})
+		return
+	}
+
+	if err := h.Service.UpdateUser(c.Request.Context(), uint(id), updates); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("update user failed: %v", err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -96,9 +128,20 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 }
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	if err := h.Service.DeleteUserByID(c.Request.Context(), uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "delete user failed"})
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing user ID"})
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid ID format: %v", err)})
+		return
+	}
+
+	if err := h.Service.DeleteUser(c.Request.Context(), uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("delete user failed: %v", err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -107,14 +150,35 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 }
 
 func (h *UserHandler) GetUserByID(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	user, err := h.Service.GetUserByID(c.Request.Context(), uint(id))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing user ID"})
 		return
 	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid ID format: %v", err)})
+		return
+	}
+
+	user, err := h.Service.GetUserByID(c.Request.Context(), uint(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get user: %v", err)})
+		return
+	}
+
+	if user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Get user successfully",
-		"data":    user,
+		"data": dto.UserResponse{
+			ID:       user.ID,
+			UserName: user.UserName,
+			Role:     user.Role,
+		},
 	})
 }

@@ -7,6 +7,7 @@ import (
 	"auth-server/internal/config"
 	"auth-server/internal/handlers"
 	"auth-server/internal/middleware"
+	"auth-server/internal/repository"
 	"auth-server/internal/routes"
 	"auth-server/internal/seed"
 	"auth-server/internal/services"
@@ -37,8 +38,9 @@ func main() {
 
 	middleware.InitMiddleware(rdb)
 
-	authService := services.NewAuthService(config.Database, rdb)
-	userService := services.NewUserService(config.Database)
+	userRepo := repository.NewUserRepositoryGorm(config.Database)
+	authService := services.NewAuthService(userRepo, rdb)
+	userService := services.NewUserService(userRepo)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -47,7 +49,7 @@ func main() {
 	routes.SetupRoutes(r, authHandler, userHandler)
 
 	log.Printf("Server starting on localhost:8080")
-	if err := r.Run("localhost:8080"); err != nil {
+	if err := r.Run(":8080"); err != nil {
 		log.Fatalf("failed to run server: %v", err)
 	}
 }

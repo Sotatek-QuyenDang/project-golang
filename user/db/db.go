@@ -19,8 +19,8 @@ type Sql struct {
 
 func Connect(cfg config.Config) (*gorm.DB, error) {
 	// Connect to the database
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		cfg.HOST, cfg.PORT, cfg.USER, cfg.PASSWORD, cfg.NAME, cfg.SSLMODE)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	fmt.Println("DSN:", dsn)
 	fmt.Println("Error:", err)
