@@ -13,14 +13,14 @@ import (
 )
 
 type UserHandler struct {
-	Service *services.UserService
+	Service services.UserService
 }
 
 func NewUserHandler(service *services.UserService) *UserHandler {
 	if service == nil {
 		panic("user service cannot be nil")
 	}
-	return &UserHandler{Service: service}
+	return &UserHandler{Service: *service}
 }
 
 func (h *UserHandler) GetAllUsers(c *gin.Context) {

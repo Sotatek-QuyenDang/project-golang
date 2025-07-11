@@ -5,7 +5,9 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 type LoginResponse struct {
-	Token string `json:"token"`
+	UserName string `json:"user_name"`
+	Password string `json:"password"`
+	Token    string `json:"token"`
 }
 type CreateUserRequest struct {
 	UserName       string `json:"user_name" binding:"required"`

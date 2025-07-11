@@ -42,8 +42,8 @@ func main() {
 	authService := services.NewAuthService(userRepo, rdb)
 	userService := services.NewUserService(userRepo)
 
-	authHandler := handlers.NewAuthHandler(authService)
-	userHandler := handlers.NewUserHandler(userService)
+	authHandler := handlers.NewAuthHandler(&authService)
+	userHandler := handlers.NewUserHandler(&userService)
 
 	r := gin.Default()
 	routes.SetupRoutes(r, authHandler, userHandler)

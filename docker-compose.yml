@@ -3,8 +3,10 @@ services:
     image: postgres:17
     container_name: postgres
     restart: always
-    env_file:
-      - .env
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=postgres
     ports:
       - "5432:5432"
     volumes:
@@ -22,9 +24,11 @@ services:
       - backend
 
   auth-service:
-    build: ./auth-server
+    build:  
+      context: ./auth-server
+      dockerfile: Dockerfile
     container_name: auth-service
-    restart: always
+    restart: always 
     env_file:
       - ./auth-server/.env
     depends_on:

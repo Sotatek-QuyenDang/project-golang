@@ -11,14 +11,14 @@ import (
 )
 
 type AuthHandler struct {
-	Service *services.AuthService
+	Service services.AuthService
 }
 
 func NewAuthHandler(service *services.AuthService) *AuthHandler {
 	if service == nil {
 		panic("auth service cannot be nil")
 	}
-	return &AuthHandler{Service: service}
+	return &AuthHandler{Service: *service}
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {

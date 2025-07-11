@@ -6,29 +6,44 @@ import (
 	"context"
 )
 
-type UserService struct {
+type UserService interface {
+	GetAllUsers(ctx context.Context) ([]*models.Users, error)
+	GetUserByID(ctx context.Context, id uint) (*models.Users, error)
+	CreateUser(ctx context.Context, user *models.Users) error
+	UpdateUser(ctx context.Context, id uint, updates map[string]interface{}) error
+	DeleteUser(ctx context.Context, id uint) error
+	CheckRole(ctx context.Context, id uint) (string, error)
+}
+
+type userService struct {
 	Repo repository.UserRepository
 }
 
-func NewUserService(repo repository.UserRepository) *UserService {
-	return &UserService{Repo: repo}
+func NewUserService(repo repository.UserRepository) UserService {
+	return &userService{Repo: repo}
 }
-func (s *UserService) GetAllUsers(ctx context.Context) ([]*models.Users, error) {
+
+func (s *userService) GetAllUsers(ctx context.Context) ([]*models.Users, error) {
 	return s.Repo.GetAllUsers(ctx)
 }
-func (s *UserService) GetUserByID(ctx context.Context, id uint) (*models.Users, error) {
+
+func (s *userService) GetUserByID(ctx context.Context, id uint) (*models.Users, error) {
 	return s.Repo.GetUserByID(ctx, id)
 }
-func (s *UserService) CreateUser(ctx context.Context, user *models.Users) error {
+
+func (s *userService) CreateUser(ctx context.Context, user *models.Users) error {
 	return s.Repo.CreateUser(ctx, user)
 }
-func (s *UserService) UpdateUser(ctx context.Context, id uint, updates map[string]interface{}) error {
+
+func (s *userService) UpdateUser(ctx context.Context, id uint, updates map[string]interface{}) error {
 	return s.Repo.UpdateUser(ctx, id, updates)
 }
-func (s *UserService) DeleteUser(ctx context.Context, id uint) error {
+
+func (s *userService) DeleteUser(ctx context.Context, id uint) error {
 	return s.Repo.DeleteUser(ctx, id)
 }
-func (s *UserService) CheckRole(ctx context.Context, id uint) (string, error) {
+
+func (s *userService) CheckRole(ctx context.Context, id uint) (string, error) {
 	role, err := s.Repo.CheckRole(ctx, id)
 	if err != nil {
 		return "", err

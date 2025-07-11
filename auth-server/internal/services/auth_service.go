@@ -14,16 +14,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthService struct {
+type AuthService interface {
+	Login(ctx context.Context, req *dto.LoginRequest) (dto.LoginResponse, error)
+	Logout(ctx context.Context, token string) error
+}
+
+type authService struct {
 	userRepo repository.UserRepository
 	Redis    *redis.Client
 }
 
-func NewAuthService(userRepo repository.UserRepository, Redis *redis.Client) *AuthService {
-	return &AuthService{userRepo: userRepo, Redis: Redis}
+func NewAuthService(userRepo repository.UserRepository, Redis *redis.Client) AuthService {
+	return &authService{userRepo: userRepo, Redis: Redis}
 }
 
-func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (dto.LoginResponse, error) {
+func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (dto.LoginResponse, error) {
 	users, err := s.userRepo.GetAllUsers(ctx)
 	if err != nil {
 		return dto.LoginResponse{}, err
@@ -66,6 +71,6 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (dto.Log
 	return dto.LoginResponse{Token: signedToken}, nil
 }
 
-func (s *AuthService) Logout(ctx context.Context, token string) error {
+func (s *authService) Logout(ctx context.Context, token string) error {
 	return s.Redis.Del(ctx, "token:"+token).Err()
 }
