@@ -7,7 +7,9 @@ import (
 	"auth-server/internal/config"
 	"auth-server/internal/handlers"
 	"auth-server/internal/middleware"
+	"auth-server/internal/repository"
 	"auth-server/internal/routes"
+	"auth-server/internal/seed"
 	"auth-server/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -20,22 +22,25 @@ func main() {
 	}
 
 	if err := config.ConnectDatabase(); err != nil {
-		log.Fatalf("failed to init db: %v", err)
+		log.Fatalf("failed to connect database: %v", err)
 	}
+	seed.SeedUsers(config.Database)
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     config.AppConfig.Redis.Addr,
 		Password: config.AppConfig.Redis.Password,
 		DB:       config.AppConfig.Redis.DB,
 	})
+
 	if err := rdb.Ping(context.Background()).Err(); err != nil {
 		log.Fatalf("failed to connect redis: %v", err)
 	}
 
 	middleware.InitMiddleware(rdb)
 
-	authService := services.NewAuthService(config.Database, rdb)
-	userService := services.NewUserService(config.Database)
+	userRepo := repository.NewUserRepositoryGorm(config.Database)
+	authService := services.NewAuthService(userRepo, rdb)
+	userService := services.NewUserService(userRepo)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -43,7 +48,8 @@ func main() {
 	r := gin.Default()
 	routes.SetupRoutes(r, authHandler, userHandler)
 
-	if err := r.Run("localhost:8080"); err != nil {
+	log.Printf("Server starting on localhost:8080")
+	if err := r.Run(":8080"); err != nil {
 		log.Fatalf("failed to run server: %v", err)
 	}
 }

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat App</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.4.0/socket.io.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h2 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .login-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    #chat {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    #messages {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    #messages li {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    #messages li:last-child {
+      border-bottom: none;
+    }
+    .message-input-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    #message {
+      flex-grow: 1;
+    }
+    .system-message {
+      color: #7f8c8d;
+      font-style: italic;
+    }
+    .duplicate-warning {
+      color: #e74c3c;
+      font-size: 12px;
+      margin-top: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>💬 Real-time Chat</h2>
+  
+  <div class="login-container">
+    <input id="nickname" placeholder="Enter your nickname" />
+    <input id="room" placeholder="Enter room name" />
+    <button onclick="join()">Join Chat</button>
+  </div>
+
+  <div id="chat" style="display:none">
+    <ul id="messages"></ul>
+    <div class="message-input-container">
+      <input id="message" placeholder="Type your message..." onkeypress="if(event.key === 'Enter') sendMessage()" />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+    <div id="duplicate-warning" class="duplicate-warning">Duplicate message prevented</div>
+  </div>
+
+  <script>
+    let socket;
+    let lastMessageSent = '';
+    let sentMessages = new Set(); // Track all sent messages
+    let messageTimeout;
+
+    function join() {
+      const nickname = document.getElementById("nickname").value;
+      const room = document.getElementById("room").value;
+
+      if (!nickname || !room) {
+        alert("Please enter nickname and room.");
+        return;
+      }
+
+      socket = io("http://localhost:3000");
+
+      socket.on("connect", () => {
+        console.log("Connected to server");
+        socket.emit("join", JSON.stringify({ nickname, room }));
+        document.getElementById("chat").style.display = "block";
+        document.querySelector(".login-container").style.display = "none";
+      });
+
+      socket.on("chat", (msg) => {
+        const li = document.createElement("li");
+        li.textContent = msg;
+        document.getElementById("messages").appendChild(li);
+        li.scrollIntoView({ behavior: "smooth" });
+      });
+
+      socket.on("system", (msg) => {
+        const li = document.createElement("li");
+        li.textContent = "🔔 " + msg;
+        li.className = "system-message";
+        document.getElementById("messages").appendChild(li);
+        li.scrollIntoView({ behavior: "smooth" });
+      });
+
+      socket.on("disconnect", () => {
+        alert("Disconnected from server");
+        document.getElementById("chat").style.display = "none";
+        document.querySelector(".login-container").style.display = "block";
+        // Clear message history when disconnected
+        sentMessages.clear();
+      });
+    }
+
+    function sendMessage() {
+      const messageInput = document.getElementById("message");
+      const warningElement = document.getElementById("duplicate-warning");
+      const msg = messageInput.value.trim();
+      
+      // Clear any existing timeout for the warning message
+      if (messageTimeout) {
+        clearTimeout(messageTimeout);
+      }
+      
+      // Only send if message is not empty and socket exists
+      if (msg && socket) {
+        // Check if this message has been sent before
+        if (sentMessages.has(msg)) {
+          // Show duplicate warning
+          warningElement.style.display = "block";
+          warningElement.textContent = "Duplicate message prevented";
+          messageInput.value = "";
+          
+          // Hide the warning after 3 seconds
+          messageTimeout = setTimeout(() => {
+            warningElement.style.display = "none";
+          }, 3000);
+          
+          return;
+        }
+        
+        // Add to sent messages set and send
+        sentMessages.add(msg);
+        socket.emit("chat", msg);
+        lastMessageSent = msg;
+        messageInput.value = "";
+        
+        // Limit the size of sentMessages to prevent memory issues
+        if (sentMessages.size > 100) {
+          // Remove the oldest message (first item in the set)
+          sentMessages.delete(sentMessages.values().next().value);
+        }
+      }
+    }
+  </script>
+</body>
+</html>

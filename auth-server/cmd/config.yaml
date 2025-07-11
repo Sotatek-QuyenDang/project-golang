@@ -1,5 +1,5 @@
 db:
-  host: localhost
+  host: postgres  
   port: 5432
   user: postgres
   password: 123456
@@ -7,7 +7,7 @@ db:
   sslmode: disable
 
 redis:
-  addr: "localhost:6379"
+  addr: "redis:6379"
   password: ""
   db: 0
 

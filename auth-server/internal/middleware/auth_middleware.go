@@ -41,8 +41,8 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Check Redis for token validity
-		ctx := context.Background()
-		exists, err := RedisClient.Exists(ctx, tokenStr).Result()
+		redisKey := "token:" + tokenStr
+		exists, err := RedisClient.Exists(context.Background(), redisKey).Result()
 		if err != nil || exists == 0 {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token expired or logged out"})
 			return
